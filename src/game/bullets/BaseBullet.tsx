@@ -172,24 +172,11 @@ export function BaseBullet({
                     const distance = playerPosition.distanceTo(playerToBeam);
                     const effectiveCollisionRadius = 2.0; // 增加碰撞范围
 
-                    // 添加调试信息
-                    console.log("Beam collision check:", {
-                        beamStart: beamStart.toArray(),
-                        beamEnd: beamEnd.toArray(),
-                        playerPos: playerPosition.toArray(),
-                        closestPoint: playerToBeam.toArray(),
-                        distance,
-                        threshold: playerRadius + effectiveCollisionRadius,
-                        isColliding:
-                            distance < playerRadius + effectiveCollisionRadius,
-                    });
-
                     // 如果距离小于碰撞半径，则发生碰撞
                     if (distance < playerRadius + effectiveCollisionRadius) {
                         const now = Date.now();
                         const cooldown = properties.cooldown ?? 0;
                         if (now - lastHitTime.current > cooldown) {
-                            console.log("Beam hit player!");
                             lastHitTime.current = now;
                             onHit?.();
                             // 确保光束在击中玩家时被销毁
@@ -224,20 +211,10 @@ export function BaseBullet({
                                     (bulletHeight * bulletHeight) <=
                             1;
 
-                        // 添加调试信息
-                        console.log("Hemisphere collision check:", {
-                            horizontalDistance,
-                            verticalDistance,
-                            bulletRadius,
-                            bulletHeight,
-                            isInHemisphere,
-                        });
-
                         if (isInHemisphere) {
                             const now = Date.now();
                             const cooldown = properties.cooldown ?? 0;
                             if (now - lastHitTime.current > cooldown) {
-                                console.log("Hemisphere hit player!");
                                 lastHitTime.current = now;
                                 onHit?.();
                                 // 半球形子弹击中玩家后销毁
@@ -267,7 +244,6 @@ export function BaseBullet({
         tempPos.copy(bullet.position);
         const distanceFromStart = tempPos.distanceTo(startPosition.current);
         if (distanceFromStart > 50) {
-            console.log(`Bullet out of range: ${distanceFromStart}`);
             setHasCollided(true);
             onDestroy?.();
         }

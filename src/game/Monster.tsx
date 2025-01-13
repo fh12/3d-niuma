@@ -3,10 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useGLTF, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
-import { Bullet } from "./Bullet";
 import { FireballBullet } from "./bullets/FireballBullet";
-import { FlameRingBullet } from "./bullets/FlameRingBullet";
-import { BeamBullet } from "./bullets/BeamBullet";
 import {
     BaseBullet,
     beamBulletProperties,
@@ -254,25 +251,16 @@ export function Monster({
 
     // 定义事件处理器
     const handleHit = useCallback(() => {
-        console.log("Monster handleHit called!", {
-            isDying,
-            currentHealth: health,
-            monsterPosition: monsterRef.current?.position,
-        });
-
         if (isDying) {
-            console.log("Monster is already dying, ignoring hit");
             return;
         }
 
         // 减少怪物血量
         const newHealth = health - 1;
-        console.log(`Monster health reduced: ${health} -> ${newHealth}`);
         onHealthChange(newHealth);
 
         // 只有在血量为0时才死亡
         if (newHealth <= 0) {
-            console.log("Monster health reached 0, starting death animation");
             setIsDying(true);
             deathAnimationProgress.current = 0;
             Object.values(actions).forEach((action) => action?.stop());
@@ -296,17 +284,10 @@ export function Monster({
         const uuid = generateUUID();
         instanceId.current = uuid;
 
-        console.log("Initializing monster with UUID:", uuid);
-
         // 遍历并设置用户数据和事件处理器
         monsterRef.current.traverse((node) => {
             // 设置基本用户数据
             if (node instanceof THREE.Mesh || node instanceof THREE.Group) {
-                console.log(
-                    "Setting userData for node:",
-                    node.name || "unnamed node"
-                );
-
                 node.userData = {
                     ...node.userData,
                     type: "monster",
@@ -344,12 +325,6 @@ export function Monster({
             onHit: handleHit,
         };
 
-        console.log("Monster initialization complete:", {
-            uuid,
-            position: monsterRef.current.position,
-            userData: monsterRef.current.userData,
-        });
-
         isInitialized.current = true;
 
         return () => {
@@ -377,7 +352,6 @@ export function Monster({
         const now = Date.now();
         const monsterPos = monsterRef.current.position;
         const playerPos = playerRef.current.position;
-        const distanceToPlayer = monsterPos.distanceTo(playerPos);
 
         // 检查火球攻击冷却
         if (now - lastAttackTime.current < attackCooldown.current) return;

@@ -32,9 +32,6 @@ export const Player = forwardRef<THREE.Mesh, PlayerProps>(
 
         // 初始化动画
         useEffect(() => {
-            // 打印所有可用的动画名称，用于调试
-            console.log("Available animations:", Object.keys(actions));
-
             // 播放待机动画
             if (actions["mixamo.com"]) {
                 actions["mixamo.com"].reset().fadeIn(0.5).play();
