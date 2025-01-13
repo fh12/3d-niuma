@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useGLTF } from "@react-three/drei";
-import { preloadSounds, AUDIO_URLS } from "../assets/sounds";
+import { preloadSounds } from "../assets/sounds";
 import { Leaderboard } from "./Leaderboard";
 
 interface LoadingScreenProps {
@@ -164,6 +164,33 @@ export function LoadingScreen({ onStart }: LoadingScreenProps) {
     const [showNameInput, setShowNameInput] = useState(false);
     const [inputError, setInputError] = useState("");
     const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [smoothProgress, setSmoothProgress] = useState(0);
+
+    // 平滑进度条
+    useEffect(() => {
+        let animationFrameId: number;
+        const smoothStep = () => {
+            setSmoothProgress((prev) => {
+                if (prev < loadingProgress) {
+                    const diff = loadingProgress - prev;
+                    const increment = Math.max(0.5, Math.min(2, diff * 0.1));
+                    return Math.min(loadingProgress, prev + increment);
+                }
+                return prev;
+            });
+
+            if (smoothProgress < loadingProgress) {
+                animationFrameId = requestAnimationFrame(smoothStep);
+            }
+        };
+
+        animationFrameId = requestAnimationFrame(smoothStep);
+        return () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, [loadingProgress, smoothProgress]);
 
     useEffect(() => {
         // 检查本地存储中是否有用户信息
@@ -174,8 +201,13 @@ export function LoadingScreen({ onStart }: LoadingScreenProps) {
         }
 
         // 加载资源
-        preloadResources(setLoadingProgress).then(() => {
-            setIsLoading(false);
+        preloadResources((progress) => {
+            setLoadingProgress(Math.min(95, progress));
+        }).then(() => {
+            setLoadingProgress(100);
+            setTimeout(() => {
+                setIsLoading(false);
+            }, 500);
         });
     }, []);
 
@@ -304,7 +336,7 @@ export function LoadingScreen({ onStart }: LoadingScreenProps) {
                     >
                         <div
                             style={{
-                                width: `${Math.min(loadingProgress, 100)}%`,
+                                width: `${Math.min(smoothProgress, 100)}%`,
                                 height: "100%",
                                 background:
                                     "linear-gradient(90deg, #2ecc71, #27ae60)",
@@ -321,8 +353,7 @@ export function LoadingScreen({ onStart }: LoadingScreenProps) {
                             textAlign: "center",
                         }}
                     >
-                        资源加载中...{" "}
-                        {Math.min(Math.round(loadingProgress), 100)}%
+                        资源加载中... {Math.round(smoothProgress)}%
                     </div>
                 </div>
             ) : (

@@ -18,6 +18,19 @@ import { OrbitControls } from "@react-three/drei";
 import { BaseBullet, playerBulletProperties } from "./bullets/BaseBullet";
 import { GameOverModal } from "./components/GameOverModal";
 import { VictoryModal } from "./components/VictoryModal";
+import { MobilePrompt } from "./components/MobilePrompt";
+
+interface SceneProps {
+    userId?: number;
+    onStart: (userId: number) => void;
+}
+
+// 移动到最顶部并添加类型声明
+const isMobileDevice = (): boolean => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    );
+};
 
 // 游戏配置常量
 const SPAWN_DELAY_AFTER_EVENT = 3000; // 修改为3秒的生成延迟
@@ -59,11 +72,6 @@ async function updateUserGameStats(
     }
 }
 
-interface SceneProps {
-    userId?: number;
-    onStart: (userId: number) => void;
-}
-
 export function Scene({ userId = 0, onStart }: SceneProps) {
     const [gameStarted, setGameStarted] = useState(false);
     const [isGameOver, setIsGameOver] = useState(false);
@@ -73,6 +81,8 @@ export function Scene({ userId = 0, onStart }: SceneProps) {
     const [bullets, setBullets] = useState<BulletData[]>([]);
     const [playerHealth, setPlayerHealth] = useState(100);
     const [updateTrigger, setUpdateTrigger] = useState(0);
+    const [isMobile, setIsMobile] = useState<boolean>(() => isMobileDevice());
+    const [isDeviceChecked, setIsDeviceChecked] = useState(false);
 
     // 处理玩家受伤
     const handlePlayerHit = useCallback(() => {
@@ -406,6 +416,31 @@ export function Scene({ userId = 0, onStart }: SceneProps) {
     const MAX_PLAYER_HEALTH = 100;
     const MAX_MONSTER_HEALTH = 100;
 
+    // 检测设备类型
+    useEffect(() => {
+        const checkDevice = () => {
+            setIsMobile(isMobileDevice());
+            setIsDeviceChecked(true);
+        };
+
+        checkDevice();
+        window.addEventListener("resize", checkDevice);
+
+        return () => {
+            window.removeEventListener("resize", checkDevice);
+        };
+    }, []);
+
+    // 在设备类型检查完成前不渲染任何内容
+    if (!isDeviceChecked) {
+        return null;
+    }
+
+    // 在设备类型检查完成后，如果是PC端则显示提示
+    if (!isMobile) {
+        return <MobilePrompt />;
+    }
+
     if (!gameStarted) {
         return <LoadingScreen onStart={handleGameStart} />;
     }
@@ -585,4 +620,3 @@ export function Scene({ userId = 0, onStart }: SceneProps) {
         </>
     );
 }
-
