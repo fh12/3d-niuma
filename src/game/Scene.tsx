@@ -6,35 +6,68 @@ import { Wall } from "./components/Wall";
 import { CameraController } from "./components/CameraController";
 import { Joystick, JoystickState } from "./components/Joystick";
 import { GameContainer } from "./components/GameContainer";
-import { GameSceneCanvas } from "./components/GameScene";
 import { AttackButton } from "./components/AttackButton";
 import { HealthBar } from "./components/HealthBar";
 import { FPSStats } from "./components/FPSStats";
 import { LoadingScreen } from "./components/LoadingScreen";
-import {
-    AudioManager,
-    calculateJoystickPosition,
-    generateRandomPosition,
-} from "./utils/gameUtils";
+import { AudioManager, calculateJoystickPosition } from "./utils/gameUtils";
 import { Monster as MonsterType, BulletData } from "./types/gameTypes";
-import { Bullet } from "./Bullet";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { BaseBullet, playerBulletProperties } from "./bullets/BaseBullet";
 import { GameOverModal } from "./components/GameOverModal";
+import { VictoryModal } from "./components/VictoryModal";
 
 // 游戏配置常量
-const TOUCH_THROTTLE = 100; // 增加到100ms以确保更稳定的状态切换
-const MIN_SPAWN_INTERVAL = 1500; // 增加最小生成间隔到1.5秒
 const SPAWN_DELAY_AFTER_EVENT = 3000; // 修改为3秒的生成延迟
 const SHOOT_COOLDOWN = 150; // 150ms cooldown between shots
 const AUTO_AIM_RANGE = 30;
 const VIEW_ANGLE = Math.PI / 2;
 
-export function Scene() {
+// 更新用户游戏数据
+async function updateUserGameStats(
+    userId: number,
+    score: number,
+    survivalTime: number,
+    remainingHealth: number
+) {
+    try {
+        const response = await fetch(
+            `http://localhost:3008/users/${userId}/stats`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    score: score,
+                    completion_time: survivalTime,
+                    remaining_health: remainingHealth,
+                }),
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("更新用户数据失败");
+        }
+
+        const data = await response.json();
+        console.log("用户数据更新成功:", data);
+    } catch (error) {
+        console.error("更新用户数据错误:", error);
+    }
+}
+
+interface SceneProps {
+    userId?: number;
+    onStart: (userId: number) => void;
+}
+
+export function Scene({ userId = 0, onStart }: SceneProps) {
     const [gameStarted, setGameStarted] = useState(false);
     const [isGameOver, setIsGameOver] = useState(false);
+    const [isVictory, setIsVictory] = useState(false);
     const [survivalTime, setSurvivalTime] = useState(0);
     // 状态和引用
     const [bullets, setBullets] = useState<BulletData[]>([]);
@@ -50,11 +83,20 @@ export function Scene() {
             if (newHealth <= 0) {
                 gameOver.current = true;
                 setIsGameOver(true);
+                // 游戏结束时更新用户数据
+                if (userId) {
+                    updateUserGameStats(
+                        userId,
+                        monstersRef.current.length * 100,
+                        survivalTime,
+                        0
+                    );
+                }
                 return 0;
             }
             return Math.max(0, newHealth);
         });
-    }, []);
+    }, [userId, survivalTime]);
 
     const joystickState = useRef<JoystickState>({
         active: false,
@@ -125,14 +167,36 @@ export function Scene() {
                 setUpdateTrigger((prev) => prev + 1);
 
                 if (newHealth <= 0) {
-                    // 延迟移除怪物，让死亡动画有时间播放
+                    const remainingMonsters = monstersRef.current.filter(
+                        (m) => m.id !== monsterId && m.health > 0
+                    );
+
+                    if (remainingMonsters.length === 0) {
+                        gameOver.current = true;
+                        setIsVictory(true);
+                        // 胜利时更新用户数据
+                        if (userId) {
+                            updateUserGameStats(
+                                userId,
+                                monstersRef.current.length * 100,
+                                survivalTime,
+                                playerHealth
+                            );
+                        }
+                        if (spawnTimerRef.current) {
+                            clearInterval(spawnTimerRef.current);
+                            spawnTimerRef.current = null;
+                        }
+                        audioManager.current.playVictorySound();
+                    }
+
                     setTimeout(() => {
                         removeMonster(monsterId);
                     }, 1000);
                 }
             }
         },
-        [removeMonster]
+        [removeMonster, userId, survivalTime, playerHealth]
     );
 
     // 处理射击完成
@@ -265,20 +329,26 @@ export function Scene() {
     );
 
     // 处理游戏开始
-    const handleGameStart = useCallback(() => {
-        setGameStarted(true);
-        // 初始化游戏状态
-        isInitialized.current = true;
-        addMonster([0, 1, -25]);
-        // 开始播放背景音乐
-        audioManager.current.startBackgroundMusic();
-    }, [addMonster]);
+    const handleGameStart = useCallback(
+        (newUserId: number) => {
+            setGameStarted(true);
+            // 初始化游戏状态
+            isInitialized.current = true;
+            addMonster([0, 1, -25]);
+            // 开始播放背景音乐
+            audioManager.current.startBackgroundMusic();
+            // 调用 onStart 回调
+            onStart(newUserId);
+        },
+        [addMonster, onStart]
+    );
 
     // 处理游戏重启
     const handleRestart = useCallback(() => {
         // 重置所有状态
         setGameStarted(false);
         setIsGameOver(false);
+        setIsVictory(false);
         setPlayerHealth(100);
         setSurvivalTime(0);
         setBullets([]);
@@ -304,16 +374,26 @@ export function Scene() {
         }, 0);
     }, [addMonster]);
 
-    // 更新生存时间
+    // 初始化游戏
     useEffect(() => {
-        if (!gameStarted || isGameOver) return;
+        if (!gameStarted) return;
 
+        // 初始化计时器
         const timer = setInterval(() => {
-            setSurvivalTime((prev) => prev + 1);
+            if (!gameOver.current) {
+                setSurvivalTime((prev) => prev + 1);
+            }
         }, 1000);
 
-        return () => clearInterval(timer);
-    }, [gameStarted, isGameOver]);
+        spawnTimerRef.current = timer;
+
+        return () => {
+            if (spawnTimerRef.current) {
+                clearInterval(spawnTimerRef.current);
+                spawnTimerRef.current = null;
+            }
+        };
+    }, [gameStarted]);
 
     // 移除原有的初始化 useEffect
     useEffect(() => {
@@ -488,10 +568,18 @@ export function Scene() {
                     />
                 ))}
             </GameContainer>
-            {isGameOver && (
+            {isGameOver && !isVictory && (
                 <GameOverModal
                     onRestart={handleRestart}
                     survivalTime={survivalTime}
+                />
+            )}
+            {isVictory && (
+                <VictoryModal
+                    onContinue={handleRestart}
+                    survivalTime={survivalTime}
+                    remainingHealth={playerHealth}
+                    userId={userId}
                 />
             )}
         </>

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { Leaderboard } from "./Leaderboard";
 
 interface GameOverModalProps {
     onRestart: () => void;
@@ -6,6 +7,8 @@ interface GameOverModalProps {
 }
 
 export function GameOverModal({ onRestart, survivalTime }: GameOverModalProps) {
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
+
     // 格式化时间显示
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
@@ -39,116 +42,161 @@ export function GameOverModal({ onRestart, survivalTime }: GameOverModalProps) {
     const rankInfo = calculateRank(survivalTime);
 
     return (
-        <div
-            style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(0, 0, 0, 0.8)",
-                backdropFilter: "blur(8px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 10000,
-            }}
-        >
+        <>
             <div
                 style={{
-                    background: "linear-gradient(135deg, #2c3e50, #34495e)",
-                    padding: "40px",
-                    borderRadius: "20px",
-                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    textAlign: "center",
-                    color: "white",
-                    minWidth: "300px",
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: "rgba(0, 0, 0, 0.8)",
+                    backdropFilter: "blur(8px)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 10000,
                 }}
             >
-                <h2
-                    style={{
-                        margin: "0 0 30px 0",
-                        fontSize: "28px",
-                        fontWeight: "bold",
-                        background: "linear-gradient(45deg, #e74c3c, #c0392b)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        textShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                    }}
-                >
-                    牛马被BOSS干死了...
-                </h2>
                 <div
                     style={{
-                        marginBottom: "30px",
-                        fontSize: "18px",
-                        opacity: 0.9,
+                        background: "linear-gradient(135deg, #2c3e50, #34495e)",
+                        padding: "40px",
+                        borderRadius: "20px",
+                        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        textAlign: "center",
+                        color: "white",
+                        minWidth: "300px",
                     }}
                 >
-                    <div style={{ marginBottom: "20px" }}>
-                        生存时间: {formatTime(survivalTime)}
-                    </div>
-                    <div
+                    <h2
                         style={{
-                            fontSize: "48px",
+                            margin: "0 0 30px 0",
+                            fontSize: "28px",
                             fontWeight: "bold",
-                            color: rankInfo.color,
-                            textShadow: `0 0 10px ${rankInfo.color}`,
-                            margin: "20px 0",
-                            animation: "rankPulse 2s infinite",
+                            background:
+                                "linear-gradient(45deg, #e74c3c, #c0392b)",
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                            textShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                         }}
                     >
-                        {rankInfo.rank}
+                        牛马被BOSS干死了...
+                    </h2>
+                    <div
+                        style={{
+                            marginBottom: "30px",
+                            fontSize: "18px",
+                            opacity: 0.9,
+                        }}
+                    >
+                        <div style={{ marginBottom: "20px" }}>
+                            生存时间: {formatTime(survivalTime)}
+                        </div>
+                        <div
+                            style={{
+                                fontSize: "48px",
+                                fontWeight: "bold",
+                                color: rankInfo.color,
+                                textShadow: `0 0 10px ${rankInfo.color}`,
+                                margin: "20px 0",
+                                animation: "rankPulse 2s infinite",
+                            }}
+                        >
+                            {rankInfo.rank}
+                        </div>
+                        <div
+                            style={{
+                                fontSize: "16px",
+                                opacity: 0.8,
+                                marginBottom: "20px",
+                            }}
+                        >
+                            超越了 {rankInfo.percentage}% 的牛马
+                        </div>
+                        <div
+                            style={{
+                                fontSize: "16px",
+                                opacity: 0.7,
+                                fontStyle: "italic",
+                            }}
+                        >
+                            继续努力，下次一定能行！
+                        </div>
                     </div>
                     <div
                         style={{
-                            fontSize: "16px",
-                            opacity: 0.8,
-                            marginBottom: "20px",
+                            display: "flex",
+                            gap: "20px",
+                            justifyContent: "center",
                         }}
                     >
-                        超越了 {rankInfo.percentage}% 的牛马
-                    </div>
-                    <div
-                        style={{
-                            fontSize: "16px",
-                            opacity: 0.7,
-                            fontStyle: "italic",
-                        }}
-                    >
-                        继续努力，下次一定能行！
+                        <button
+                            onClick={onRestart}
+                            style={{
+                                padding: "15px 15px",
+                                fontSize: "18px",
+                                fontWeight: "bold",
+                                color: "white",
+                                background:
+                                    "linear-gradient(90deg, #2ecc71, #27ae60)",
+                                border: "none",
+                                borderRadius: "25px",
+                                cursor: "pointer",
+                                boxShadow: "0 4px 15px rgba(46, 204, 113, 0.3)",
+                                transform: "scale(1)",
+                                transition: "all 0.2s ease-out",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = "scale(1.05)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 6px 20px rgba(46, 204, 113, 0.4)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "scale(1)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 4px 15px rgba(46, 204, 113, 0.3)";
+                            }}
+                        >
+                            快！扶我起来
+                        </button>
+                        <button
+                            onClick={() => setShowLeaderboard(true)}
+                            style={{
+                                padding: "15px 15px",
+                                fontSize: "18px",
+                                fontWeight: "bold",
+                                color: "white",
+                                background:
+                                    "linear-gradient(90deg, #3498db, #2980b9)",
+                                border: "none",
+                                borderRadius: "25px",
+                                cursor: "pointer",
+                                boxShadow: "0 4px 15px rgba(52, 152, 219, 0.3)",
+                                transform: "scale(1)",
+                                transition: "all 0.2s ease-out",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = "scale(1.05)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 6px 20px rgba(52, 152, 219, 0.4)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "scale(1)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 4px 15px rgba(52, 152, 219, 0.3)";
+                            }}
+                        >
+                            查看排行
+                        </button>
                     </div>
                 </div>
-                <button
-                    onClick={onRestart}
-                    style={{
-                        padding: "15px 40px",
-                        fontSize: "18px",
-                        fontWeight: "bold",
-                        color: "white",
-                        background: "linear-gradient(90deg, #2ecc71, #27ae60)",
-                        border: "none",
-                        borderRadius: "25px",
-                        cursor: "pointer",
-                        boxShadow: "0 4px 15px rgba(46, 204, 113, 0.3)",
-                        transform: "scale(1)",
-                        transition: "all 0.2s ease-out",
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "scale(1.05)";
-                        e.currentTarget.style.boxShadow =
-                            "0 6px 20px rgba(46, 204, 113, 0.4)";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "scale(1)";
-                        e.currentTarget.style.boxShadow =
-                            "0 4px 15px rgba(46, 204, 113, 0.3)";
-                    }}
-                >
-                    快！扶我起来
-                </button>
             </div>
+            <Leaderboard
+                isVisible={showLeaderboard}
+                onClose={() => setShowLeaderboard(false)}
+            />
             <style>
                 {`
                     @keyframes rankPulse {
@@ -158,7 +206,7 @@ export function GameOverModal({ onRestart, survivalTime }: GameOverModalProps) {
                     }
                 `}
             </style>
-        </div>
+        </>
     );
 }
 

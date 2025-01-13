@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useGLTF } from "@react-three/drei";
 import { preloadSounds, AUDIO_URLS } from "../assets/sounds";
+import { Leaderboard } from "./Leaderboard";
 
 interface LoadingScreenProps {
-    onStart: () => void;
+    onStart: (userId: number) => void;
 }
 
 // 预加载资源列表
@@ -102,9 +103,32 @@ async function preloadResources(onProgress: (progress: number) => void) {
     }
 }
 
+// 创建用户
+async function createUser(name: string): Promise<number> {
+    try {
+        const response = await fetch("/bpi/users", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name }),
+        });
+
+        if (!response.ok) {
+            throw new Error("创建用户失败");
+        }
+
+        const data = await response.json();
+        return data.id;
+    } catch (error) {
+        console.error("创建用户错误:", error);
+        throw error;
+    }
+}
+
 async function recordVisit() {
     try {
-        const sessionId: string =
+        const sessionId =
             localStorage.getItem("game_session_id") ||
             (() => {
                 const newId = uuidv4();
@@ -112,11 +136,10 @@ async function recordVisit() {
                 return newId;
             })();
 
-        const response = await fetch("/game-stats/record", {
+        const response = await fetch("/bpi/game-stats/record", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Accept: "application/json",
             },
             body: JSON.stringify({
                 sessionId,
@@ -124,37 +147,104 @@ async function recordVisit() {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(
-                `Failed to record visit: ${response.status} ${errorText}`
-            );
+            throw new Error("记录访问失败");
         }
 
         const data = await response.json();
-        console.log("Visit recorded successfully:", data);
+        console.log("访问记录成功:", data);
     } catch (error) {
-        console.error("Error recording visit:", error);
+        console.error("记录访问错误:", error);
     }
 }
 
 export function LoadingScreen({ onStart }: LoadingScreenProps) {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [userName, setUserName] = useState("");
+    const [showNameInput, setShowNameInput] = useState(false);
+    const [inputError, setInputError] = useState("");
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
 
     useEffect(() => {
-        // 开始预加载资源
+        // 检查本地存储中是否有用户信息
+        const storedUser = localStorage.getItem("game_user");
+        if (storedUser) {
+            const user = JSON.parse(storedUser);
+            setUserName(user.name);
+        }
+
+        // 加载资源
         preloadResources(setLoadingProgress).then(() => {
             setIsLoading(false);
         });
     }, []);
 
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // 移除HTML标签和危险字符
+        const sanitizedValue = value
+            .replace(/<[^>]*>/g, "") // 移除HTML标签
+            .replace(/[<>'"&]/g, "") // 移除潜在的危险字符
+            .replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); // 移除控制字符
+
+        // 限制长度为8个字符
+        const truncatedValue = sanitizedValue.slice(0, 8);
+
+        setUserName(truncatedValue);
+        setInputError("");
+    };
+
     const handleStart = async () => {
+        if (!showNameInput) {
+            // 如果有缓存的用户信息，直接使用
+            const storedUser = localStorage.getItem("game_user");
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                try {
+                    await recordVisit();
+                    onStart(user.id);
+                } catch (error) {
+                    console.error("Error starting game:", error);
+                    localStorage.removeItem("game_user");
+                    setShowNameInput(true);
+                }
+                return;
+            }
+            setShowNameInput(true);
+            return;
+        }
+
+        const trimmedName = userName.trim();
+        if (!trimmedName) {
+            setInputError("请输入你的名字");
+            return;
+        }
+
+        if (trimmedName.length > 8) {
+            setInputError("名字最多8个字符");
+            return;
+        }
+
+        // 检查是否包含非法字符
+        if (/[<>'"&]/.test(trimmedName)) {
+            setInputError("名字包含非法字符");
+            return;
+        }
+
         try {
             await recordVisit();
-            onStart();
+            const userId = await createUser(trimmedName);
+            localStorage.setItem(
+                "game_user",
+                JSON.stringify({
+                    id: userId,
+                    name: trimmedName,
+                })
+            );
+            onStart(userId);
         } catch (error) {
             console.error("Error starting game:", error);
-            onStart();
+            setInputError("创建用户失败，请重试");
         }
     };
 
@@ -236,35 +326,114 @@ export function LoadingScreen({ onStart }: LoadingScreenProps) {
                     </div>
                 </div>
             ) : (
-                <button
-                    onClick={handleStart}
+                <div
                     style={{
-                        padding: "16px 40px",
-                        fontSize: "20px",
-                        fontWeight: "bold",
-                        color: "white",
-                        background: "linear-gradient(90deg, #2ecc71, #27ae60)",
-                        border: "none",
-                        borderRadius: "30px",
-                        cursor: "pointer",
-                        boxShadow: "0 4px 15px rgba(46, 204, 113, 0.3)",
-                        transform: "scale(1)",
-                        transition: "all 0.2s ease-out",
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "scale(1.05)";
-                        e.currentTarget.style.boxShadow =
-                            "0 6px 20px rgba(46, 204, 113, 0.4)";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "scale(1)";
-                        e.currentTarget.style.boxShadow =
-                            "0 4px 15px rgba(46, 204, 113, 0.3)";
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "20px",
                     }}
                 >
-                    开始上班
-                </button>
+                    {showNameInput && (
+                        <div style={{ marginBottom: "20px" }}>
+                            <input
+                                type="text"
+                                value={userName}
+                                onChange={handleNameChange}
+                                maxLength={8}
+                                placeholder="请输入你的名字(最多8字)"
+                                style={{
+                                    padding: "12px 20px",
+                                    fontSize: "16px",
+                                    borderRadius: "8px",
+                                    border: "2px solid rgba(255,255,255,0.1)",
+                                    background: "rgba(255,255,255,0.05)",
+                                    color: "white",
+                                    width: "200px",
+                                    outline: "none",
+                                }}
+                            />
+                            {inputError && (
+                                <div
+                                    style={{
+                                        color: "#ff6b6b",
+                                        fontSize: "14px",
+                                        marginTop: "8px",
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    {inputError}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <div style={{ display: "flex", gap: "20px" }}>
+                        <button
+                            onClick={handleStart}
+                            style={{
+                                padding: "16px 40px",
+                                fontSize: "20px",
+                                fontWeight: "bold",
+                                color: "white",
+                                background:
+                                    "linear-gradient(90deg, #2ecc71, #27ae60)",
+                                border: "none",
+                                borderRadius: "30px",
+                                cursor: "pointer",
+                                boxShadow: "0 4px 15px rgba(46, 204, 113, 0.3)",
+                                transform: "scale(1)",
+                                transition: "all 0.2s ease-out",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = "scale(1.05)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 6px 20px rgba(46, 204, 113, 0.4)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "scale(1)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 4px 15px rgba(46, 204, 113, 0.3)";
+                            }}
+                        >
+                            {showNameInput ? "go go" : "开始"}
+                        </button>
+                        <button
+                            onClick={() => setShowLeaderboard(true)}
+                            style={{
+                                padding: "16px 40px",
+                                fontSize: "20px",
+                                fontWeight: "bold",
+                                color: "white",
+                                background:
+                                    "linear-gradient(90deg, #3498db, #2980b9)",
+                                border: "none",
+                                borderRadius: "30px",
+                                cursor: "pointer",
+                                boxShadow: "0 4px 15px rgba(52, 152, 219, 0.3)",
+                                transform: "scale(1)",
+                                transition: "all 0.2s ease-out",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = "scale(1.05)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 6px 20px rgba(52, 152, 219, 0.4)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "scale(1)";
+                                e.currentTarget.style.boxShadow =
+                                    "0 4px 15px rgba(52, 152, 219, 0.3)";
+                            }}
+                        >
+                            排行榜
+                        </button>
+                    </div>
+                </div>
             )}
+
+            <Leaderboard
+                isVisible={showLeaderboard}
+                onClose={() => setShowLeaderboard(false)}
+            />
         </div>
     );
 }

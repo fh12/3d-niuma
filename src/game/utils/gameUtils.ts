@@ -50,7 +50,9 @@ export class AudioManager {
     private static instance: AudioManager;
     private backgroundMusicPlaying: boolean = false;
 
-    private constructor() {}
+    private constructor() {
+        this.backgroundMusicPlaying = false;
+    }
 
     public static getInstance(): AudioManager {
         if (!AudioManager.instance) {
@@ -89,8 +91,17 @@ export class AudioManager {
         sounds.music.setVolume(volume);
     }
 
+    public playVictorySound() {
+        sounds.music.stop(); // 停止背景音乐
+        sounds.victory.play(0.6); // 播放胜利音效
+    }
+
     public cleanup() {
-        this.stopBackgroundMusic();
+        sounds.music.stop();
+        sounds.shot.stop();
+        sounds.bossDead.stop();
+        sounds.bossSound.stop();
+        sounds.victory.stop();
     }
 }
 

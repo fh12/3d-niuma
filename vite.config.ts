@@ -39,6 +39,13 @@ export default defineConfig({
         host: true,
         port: 5173,
         strictPort: true,
+        proxy: {
+            "/bpi": {
+                target: "http://localhost:3008",
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/bpi/, ""),
+            },
+        },
     },
     publicDir: "public",
     // 优化资源导入

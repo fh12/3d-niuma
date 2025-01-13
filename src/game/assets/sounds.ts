@@ -4,6 +4,7 @@ export const AUDIO_URLS = {
     bossDead: "/game/assets/sounds/boss-dead.mp3",
     bossSound: "/game/assets/sounds/boss-sound.mp3",
     music: "/game/assets/sounds/music.mp3",
+    victory: "/game/assets/sounds/victory.mp3",
 };
 
 // 音频上下文
@@ -140,6 +141,11 @@ export const sounds = {
         stop: () => stopAudio(AUDIO_URLS.music),
         setVolume: (volume: number) => setVolume(AUDIO_URLS.music, volume),
     },
+    victory: {
+        play: (volume = 1) => playAudio(AUDIO_URLS.victory, volume),
+        stop: () => stopAudio(AUDIO_URLS.victory),
+        setVolume: (volume: number) => setVolume(AUDIO_URLS.victory, volume),
+    },
 };
 
 // 预加载所有音频
@@ -147,3 +153,4 @@ export function preloadSounds(): Promise<void[]> {
     const audioUrls = Object.values(AUDIO_URLS);
     return Promise.all(audioUrls.map((url) => loadSingleAudio(url)));
 }
+
