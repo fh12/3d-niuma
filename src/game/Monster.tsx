@@ -79,7 +79,7 @@ export function Monster({
     const HEMISPHERE_COOLDOWN = 8000; // 半球攻击冷却时间8秒
 
     // 获取原始模型和动画
-    const gltf = useGLTF("/assets/models/enemy.glb");
+    const gltf = useGLTF("/game/assets/models/enemy.glb");
 
     // 克隆场景
     const clonedScene = useMemo(() => {
@@ -251,7 +251,7 @@ export function Monster({
     }, [actions, switchAnimation]);
 
     // 添加音频管理器
-    const audioManagerRef = useRef<AudioManager>(new AudioManager());
+    const audioManagerRef = useRef<AudioManager>(AudioManager.getInstance());
 
     // 修改光束波攻击函数
     const performBeamAttack = useCallback(() => {
@@ -549,7 +549,7 @@ export function Monster({
 
     // 预加载模型
     useEffect(() => {
-        useGLTF.preload("/assets/models/enemy.glb");
+        useGLTF.preload("/game/assets/models/enemy.glb");
     }, []);
 
     // 添加伤害冷却时间引用

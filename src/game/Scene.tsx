@@ -67,7 +67,7 @@ export function Scene() {
     const monsterIdCounter = useRef(0);
     const isInitialized = useRef(false);
     const sceneRef = useRef<THREE.Scene | null>(null);
-    const audioManager = useRef<AudioManager>(new AudioManager());
+    const audioManager = useRef<AudioManager>(AudioManager.getInstance());
     const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const gameOver = useRef(false);
 

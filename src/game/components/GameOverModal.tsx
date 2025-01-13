@@ -146,7 +146,7 @@ export function GameOverModal({ onRestart, survivalTime }: GameOverModalProps) {
                             "0 4px 15px rgba(46, 204, 113, 0.3)";
                     }}
                 >
-                    干！
+                    快！扶我起来
                 </button>
             </div>
             <style>

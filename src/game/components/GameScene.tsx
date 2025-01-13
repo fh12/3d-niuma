@@ -2,6 +2,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Sky } from "@react-three/drei";
 import { Suspense, useEffect } from "react";
 import * as THREE from "three";
+import { preloadSounds } from "../assets/sounds";
 
 interface GameSceneProps {
     children: React.ReactNode;
@@ -38,6 +39,11 @@ function handleCanvasCreated({
 }
 
 export function GameSceneCanvas({ children }: GameSceneProps) {
+    useEffect(() => {
+        // 预加载所有音频资源
+        preloadSounds();
+    }, []);
+
     return (
         <Canvas
             shadows

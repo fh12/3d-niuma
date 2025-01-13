@@ -23,7 +23,9 @@ export const Player = forwardRef<THREE.Mesh, PlayerProps>(
         const targetRotation = useRef<number>(0);
 
         // 加载角色模型
-        const { scene, animations } = useGLTF("/assets/models/character.glb");
+        const { scene, animations } = useGLTF(
+            "/game/assets/models/character.glb"
+        );
         // 获取动画控制器
         const { actions } = useAnimations(animations, scene);
 
@@ -181,5 +183,5 @@ export const Player = forwardRef<THREE.Mesh, PlayerProps>(
 );
 
 // 预加载模型
-useGLTF.preload("/assets/models/character.glb");
+useGLTF.preload("/game/assets/models/character.glb");
 

@@ -4,7 +4,9 @@ import * as THREE from "three";
 // 地面组件
 export function Ground() {
     // 加载草地纹理
-    const grassTexture = useTexture("/assets/textures/grass/grass_color.jpg");
+    const grassTexture = useTexture(
+        "/game/assets/textures/grass/grass_color.jpg"
+    );
 
     // 设置纹理重复
     grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;

@@ -1,3 +1,5 @@
+import { sounds } from "../assets/sounds";
+
 // 生成随机位置
 export const generateRandomPosition = (): [number, number, number] => {
     const angle = Math.random() * Math.PI * 2;
@@ -43,65 +45,52 @@ export function calculateJoystickPosition(
     };
 }
 
-// 音频工具
+// 音频管理器
 export class AudioManager {
-    private shootSound: HTMLAudioElement;
-    private bossDeadSound: HTMLAudioElement;
-    private bossSoundEffect: HTMLAudioElement;
-    private backgroundMusic: HTMLAudioElement;
+    private static instance: AudioManager;
+    private backgroundMusicPlaying: boolean = false;
 
-    constructor() {
-        // 初始化所有音频元素
-        this.shootSound = new Audio("/sounds/shot.mp3");
-        this.bossDeadSound = new Audio("/sounds/boss-dead.mp3");
-        this.bossSoundEffect = new Audio("/sounds/boss-sound.mp3");
-        this.backgroundMusic = new Audio("/sounds/music.mp3");
+    private constructor() {}
 
-        // 设置背景音乐循环播放
-        this.backgroundMusic.loop = true;
-        // 设置背景音乐音量
-        this.backgroundMusic.volume = 0.5;
+    public static getInstance(): AudioManager {
+        if (!AudioManager.instance) {
+            AudioManager.instance = new AudioManager();
+        }
+        return AudioManager.instance;
     }
 
-    // 播放射击音效
-    playShootSound() {
-        this.shootSound.currentTime = 0;
-        this.shootSound.play().catch(() => {});
+    public playShootSound() {
+        sounds.shot.play(0.5); // 设置适当的音量
     }
 
-    // 播放Boss死亡音效
-    playBossDeadSound() {
-        this.bossDeadSound.currentTime = 0;
-        this.bossDeadSound.play().catch(() => {});
+    public playBossDeadSound() {
+        sounds.bossDead.play(0.7);
     }
 
-    // 播放Boss音效
-    playBossSound() {
-        this.bossSoundEffect.currentTime = 0;
-        this.bossSoundEffect.play().catch(() => {});
+    public playBossSound() {
+        sounds.bossSound.play(0.6);
     }
 
-    // 开始播放背景音乐
-    startBackgroundMusic() {
-        this.backgroundMusic.play().catch(() => {});
+    public startBackgroundMusic() {
+        if (!this.backgroundMusicPlaying) {
+            sounds.music.play(0.3); // 背景音乐音量较低
+            this.backgroundMusicPlaying = true;
+        }
     }
 
-    // 暂停背景音乐
-    pauseBackgroundMusic() {
-        this.backgroundMusic.pause();
+    public stopBackgroundMusic() {
+        if (this.backgroundMusicPlaying) {
+            sounds.music.stop();
+            this.backgroundMusicPlaying = false;
+        }
     }
 
-    // 清理所有音频
-    cleanup() {
-        this.shootSound.pause();
-        this.bossDeadSound.pause();
-        this.bossSoundEffect.pause();
-        this.backgroundMusic.pause();
+    public setBackgroundMusicVolume(volume: number) {
+        sounds.music.setVolume(volume);
+    }
 
-        this.shootSound.currentTime = 0;
-        this.bossDeadSound.currentTime = 0;
-        this.bossSoundEffect.currentTime = 0;
-        this.backgroundMusic.currentTime = 0;
+    public cleanup() {
+        this.stopBackgroundMusic();
     }
 }
 
