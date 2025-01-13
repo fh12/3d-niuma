@@ -270,6 +270,8 @@ export function Scene() {
         // 初始化游戏状态
         isInitialized.current = true;
         addMonster([0, 1, -25]);
+        // 开始播放背景音乐
+        audioManager.current.startBackgroundMusic();
     }, [addMonster]);
 
     // 处理游戏重启
@@ -297,6 +299,8 @@ export function Scene() {
             setGameStarted(true);
             isInitialized.current = true;
             addMonster([0, 1, -25]);
+            // 重新开始播放背景音乐
+            audioManager.current.startBackgroundMusic();
         }, 0);
     }, [addMonster]);
 

@@ -4,6 +4,7 @@ import { useGLTF, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { FireballBullet } from "./bullets/FireballBullet";
+import { AudioManager } from "./utils/gameUtils";
 import {
     BaseBullet,
     beamBulletProperties,
@@ -249,7 +250,63 @@ export function Monster({
         };
     }, [actions, switchAnimation]);
 
-    // 定义事件处理器
+    // 添加音频管理器
+    const audioManagerRef = useRef<AudioManager>(new AudioManager());
+
+    // 修改光束波攻击函数
+    const performBeamAttack = useCallback(() => {
+        if (!monsterRef.current || !playerRef?.current || isDying) return;
+
+        const now = Date.now();
+        if (now - lastBeamTime.current < BEAM_COOLDOWN) return;
+
+        lastBeamTime.current = now;
+        switchAnimation("beam"); // 播放前摇动画
+
+        // 在前摇动画完成后播放Boss音效
+        setTimeout(() => {
+            audioManagerRef.current.playBossSound();
+        }, BEAM_CHARGE_TIME - 500); // 在光束发射前0.5秒播放音效
+
+        // 在前摇动画完成后发射光束
+        setTimeout(() => {
+            if (!monsterRef.current || !playerRef?.current || isDying) return;
+
+            const monsterPos = monsterRef.current.position;
+            const playerPos = playerRef.current.position;
+
+            // 计算朝向玩家的方向
+            const toPlayer = new THREE.Vector3()
+                .subVectors(playerPos, monsterPos)
+                .normalize();
+
+            // 计算垂直于移动方向的向量（用于偏移）
+            const perpendicular = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x);
+
+            // 发射三道平行光束
+            const spacing = 1; // 将光束间距从2减小到1
+            [-1, 0, 1].forEach((offset) => {
+                // 计算偏移后的发射位置
+                const offsetPos = new THREE.Vector3(
+                    monsterPos.x + perpendicular.x * offset * spacing,
+                    1.5,
+                    monsterPos.z + perpendicular.z * offset * spacing
+                );
+
+                setBullets((prev) => [
+                    ...prev,
+                    {
+                        id: Date.now() + offset,
+                        position: [offsetPos.x, offsetPos.y, offsetPos.z],
+                        direction: toPlayer,
+                        type: BulletType.BEAM,
+                    },
+                ]);
+            });
+        }, BEAM_CHARGE_TIME);
+    }, [isDying, switchAnimation]);
+
+    // 修改事件处理器
     const handleHit = useCallback(() => {
         if (isDying) {
             return;
@@ -267,6 +324,9 @@ export function Monster({
             if (actions["death"]) {
                 actions["death"].reset().fadeIn(0.2).play();
             }
+
+            // 播放Boss死亡音效
+            audioManagerRef.current.playBossDeadSound();
 
             setTimeout(() => {
                 if (onDestroy) {
@@ -495,54 +555,6 @@ export function Monster({
     // 添加伤害冷却时间引用
     const lastDamageTime = useRef<{ [key: string]: number }>({});
 
-    // 修改光束波攻击函数
-    const performBeamAttack = useCallback(() => {
-        if (!monsterRef.current || !playerRef?.current || isDying) return;
-
-        const now = Date.now();
-        if (now - lastBeamTime.current < BEAM_COOLDOWN) return;
-
-        lastBeamTime.current = now;
-        switchAnimation("beam"); // 播放前摇动画
-
-        // 在前摇动画完成后发射光束
-        setTimeout(() => {
-            if (!monsterRef.current || !playerRef?.current || isDying) return;
-
-            const monsterPos = monsterRef.current.position;
-            const playerPos = playerRef.current.position;
-
-            // 计算朝向玩家的方向
-            const toPlayer = new THREE.Vector3()
-                .subVectors(playerPos, monsterPos)
-                .normalize();
-
-            // 计算垂直于移动方向的向量（用于偏移）
-            const perpendicular = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x);
-
-            // 发射三道平行光束
-            const spacing = 1; // 将光束间距从2减小到1
-            [-1, 0, 1].forEach((offset) => {
-                // 计算偏移后的发射位置
-                const offsetPos = new THREE.Vector3(
-                    monsterPos.x + perpendicular.x * offset * spacing,
-                    1.5,
-                    monsterPos.z + perpendicular.z * offset * spacing
-                );
-
-                setBullets((prev) => [
-                    ...prev,
-                    {
-                        id: Date.now() + offset,
-                        position: [offsetPos.x, offsetPos.y, offsetPos.z],
-                        direction: toPlayer,
-                        type: BulletType.BEAM,
-                    },
-                ]);
-            });
-        }, BEAM_CHARGE_TIME); // 使用2秒的前摇时间
-    }, [isDying, switchAnimation]);
-
     // 添加半球形子弹攻击函数
     const performHemisphereAttack = useCallback(() => {
         if (!monsterRef.current || !playerRef?.current || isDying) return;
@@ -574,6 +586,13 @@ export function Monster({
             ]);
         }
     }, [isDying]);
+
+    // 清理音频
+    useEffect(() => {
+        return () => {
+            audioManagerRef.current.cleanup();
+        };
+    }, []);
 
     return (
         <>

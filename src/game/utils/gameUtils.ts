@@ -1,5 +1,3 @@
-import * as THREE from "three";
-
 // 生成随机位置
 export const generateRandomPosition = (): [number, number, number] => {
     const angle = Math.random() * Math.PI * 2;
@@ -48,28 +46,62 @@ export function calculateJoystickPosition(
 // 音频工具
 export class AudioManager {
     private shootSound: HTMLAudioElement;
-    private powerUpSound: HTMLAudioElement;
+    private bossDeadSound: HTMLAudioElement;
+    private bossSoundEffect: HTMLAudioElement;
+    private backgroundMusic: HTMLAudioElement;
 
     constructor() {
-        this.shootSound = new Audio("/sounds/shoot.mp3");
-        this.powerUpSound = new Audio("/sounds/powerup.mp3");
+        // 初始化所有音频元素
+        this.shootSound = new Audio("/sounds/shot.mp3");
+        this.bossDeadSound = new Audio("/sounds/boss-dead.mp3");
+        this.bossSoundEffect = new Audio("/sounds/boss-sound.mp3");
+        this.backgroundMusic = new Audio("/sounds/music.mp3");
+
+        // 设置背景音乐循环播放
+        this.backgroundMusic.loop = true;
+        // 设置背景音乐音量
+        this.backgroundMusic.volume = 0.5;
     }
 
+    // 播放射击音效
     playShootSound() {
         this.shootSound.currentTime = 0;
         this.shootSound.play().catch(() => {});
     }
 
-    playPowerUpSound() {
-        this.powerUpSound.currentTime = 0;
-        this.powerUpSound.play().catch(() => {});
+    // 播放Boss死亡音效
+    playBossDeadSound() {
+        this.bossDeadSound.currentTime = 0;
+        this.bossDeadSound.play().catch(() => {});
     }
 
+    // 播放Boss音效
+    playBossSound() {
+        this.bossSoundEffect.currentTime = 0;
+        this.bossSoundEffect.play().catch(() => {});
+    }
+
+    // 开始播放背景音乐
+    startBackgroundMusic() {
+        this.backgroundMusic.play().catch(() => {});
+    }
+
+    // 暂停背景音乐
+    pauseBackgroundMusic() {
+        this.backgroundMusic.pause();
+    }
+
+    // 清理所有音频
     cleanup() {
         this.shootSound.pause();
-        this.powerUpSound.pause();
+        this.bossDeadSound.pause();
+        this.bossSoundEffect.pause();
+        this.backgroundMusic.pause();
+
         this.shootSound.currentTime = 0;
-        this.powerUpSound.currentTime = 0;
+        this.bossDeadSound.currentTime = 0;
+        this.bossSoundEffect.currentTime = 0;
+        this.backgroundMusic.currentTime = 0;
     }
 }
 
